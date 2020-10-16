@@ -560,7 +560,7 @@ function Todo(props) {
         completed
       </Typography>
       {curPath ? completed : allCompleted}
-      <div style={{ height: "76px" }}></div>
+      <div style={{ height: "118px" }}></div>
     </div>
   );
 }
