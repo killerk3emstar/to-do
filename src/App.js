@@ -29,6 +29,12 @@ import { Button } from "@material-ui/core";
 import Checkbox from "@material-ui/core/Checkbox";
 import Paper from "@material-ui/core/Paper";
 import TextField from "@material-ui/core/TextField";
+import Chip from "@material-ui/core/Chip";
+import Dialog from "@material-ui/core/Dialog";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import DialogTitle from "@material-ui/core/DialogTitle";
 
 import {
   BrowserRouter as Router,
@@ -36,9 +42,8 @@ import {
   Route,
   Link,
   useLocation,
+  useHistory,
 } from "react-router-dom";
-
-import { AnimatedList } from "react-animated-list";
 
 firebase.initializeApp({
   apiKey: "AIzaSyC7whNorGCxX12SYfJgo1zaa7wT1seqW1U",
@@ -87,7 +92,7 @@ const useStyles = makeStyles((theme) => ({
     bottom: "0",
     right: "0",
     left: "0",
-    display: "flex",
+    display: "block",
     fontSize: "1.5rem",
     margin: "10px",
     [theme.breakpoints.up("sm")]: {
@@ -95,7 +100,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   todoinputform: {
-    padding: "10px",
+    padding: "0 10px 10px 10px",
     width: "100%",
     justifyContent: "space-between",
     display: "flex",
@@ -136,9 +141,37 @@ function TodoContainer(props) {
   const [preTodoFolders, setPreTodoFolders] = useState([]);
   const [todoFolders, setTodoFolders] = useState([]);
   const [input, setInput] = useState("");
+  const [folder, setFolder] = useState("Tasks");
+  const [newFolderDialog, setNewFolderDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+
+  const history = useHistory();
+
+  const handleClickOpen = () => {
+    setNewFolderDialog(true);
+  };
+
+  const handleClose = () => {
+    setNewFolderDialog(false);
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+  const createNewFolder = () => {
+    firestore
+      .collection("users")
+      .doc(auth.currentUser.uid)
+      .collection("Todo")
+      .doc()
+      .set({
+        text: "It's your new Folder!",
+        completed: false,
+        folder: newFolderName,
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    history.push(`/${newFolderName}`);
+    handleClose();
   };
 
   const singInWithGoogle = () => {
@@ -189,7 +222,7 @@ function TodoContainer(props) {
       .set({
         text: input,
         completed: false,
-        folder: "Tasks",
+        folder: folder,
         date: firebase.firestore.FieldValue.serverTimestamp(),
       });
     setInput("");
@@ -332,33 +365,9 @@ function TodoContainer(props) {
       </nav>
       <main style={{ width: "100%" }}>
         <div className={classes.toolbar} />
-        {/* <Switch>
-          <Route
-            path="/"
-            exact
-            children={
-              <Todo
-                todos={todos}
-                handleDelete={Delete}
-                handleComplete={Complete}
-                handleUnComplete={UnComplete}
-              />
-            }
-          />
 
-          <Route
-            path="/:folder"
-            children={
-              <Todo
-                todos={todos}
-                handleDelete={Delete}
-                handleComplete={Complete}
-                handleUnComplete={UnComplete}
-              />
-            }
-          />
-        </Switch> */}
         <Todo
+          setFolder={setFolder}
           todos={todos}
           handleDelete={Delete}
           handleComplete={Complete}
@@ -366,6 +375,38 @@ function TodoContainer(props) {
         ></Todo>
       </main>
       <Paper variant="outlined" className={classes.todoinputdiv}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-start",
+            // padding: "8px 8px 0 8px",
+            overflowX: "auto",
+          }}
+        >
+          <Chip
+            style={{ margin: "8px" }}
+            variant="outlined"
+            label="All"
+            color="secondary"
+            disabled
+          />
+          <Chip
+            style={{ margin: "8px" }}
+            variant="outlined"
+            label="+"
+            onClick={() => handleClickOpen()}
+          />
+          {todoFolders.map((item) => (
+            <Chip
+              style={{ margin: "8px" }}
+              color={folder === item ? "secondary" : "default"}
+              variant="outlined"
+              key={item}
+              label={item}
+              onClick={() => setFolder(item)}
+            ></Chip>
+          ))}
+        </div>
         <form className={classes.todoinputform} onSubmit={Save}>
           <Checkbox disabled></Checkbox>
           <TextField
@@ -385,6 +426,45 @@ function TodoContainer(props) {
           </Button>
         </form>
       </Paper>
+      <Dialog
+        open={newFolderDialog}
+        onClose={handleClose}
+        aria-labelledby="form-dialog-title"
+      >
+        <form onSubmit={createNewFolder}>
+          <DialogTitle id="form-dialog-title">A new Folder</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              You are about to create a new Folder. If you delete all items from
+              any folder it will be auto-removed. Type Folder's name and click
+              "Create".
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              label="Name of the Folder"
+              type="text"
+              fullWidth
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button variant="text" onClick={handleClose} color="primary">
+              Cancel
+            </Button>
+            <Button
+              variant="outlined"
+              disabled={!newFolderName}
+              type="submit"
+              color="primary"
+            >
+              Create
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
     </div>
   );
 }
@@ -394,6 +474,7 @@ function Todo(props) {
 
   useEffect(() => {
     console.log(curPath ? true : false);
+    curPath ? props.setFolder(curPath) : props.setFolder("Tasks");
   }, [curPath]);
 
   const allNotCompleted = props.todos
@@ -467,6 +548,7 @@ function Todo(props) {
   return (
     <div>
       {curPath ? notCompleted : allNotCompleted}
+
       <Divider style={{ margin: "0 0 0 16px" }} />
 
       <Typography
@@ -485,11 +567,7 @@ function Todo(props) {
 
 function ListToDo(props) {
   return (
-    <Paper
-      className="ListItem-card"
-      variant="outlined"
-      className="ListItem-card"
-    >
+    <Paper className="ListItem-card" variant="outlined">
       <Checkbox
         onClick={props.handleComplete}
         checked={props.completed}
