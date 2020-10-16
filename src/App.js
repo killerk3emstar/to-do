@@ -158,20 +158,21 @@ function TodoContainer(props) {
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-  const createNewFolder = () => {
+  const createNewFolder = (event) => {
     firestore
       .collection("users")
       .doc(auth.currentUser.uid)
       .collection("Todo")
       .doc()
       .set({
-        text: "It's your new Folder!",
+        text: "That's your new folder!",
         completed: false,
         folder: newFolderName,
         date: firebase.firestore.FieldValue.serverTimestamp(),
       });
-    history.push(`/${newFolderName}`);
     handleClose();
+    history.push(`/${newFolderName}`);
+    event.preventDefault();
   };
 
   const singInWithGoogle = () => {

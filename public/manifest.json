@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "to-do",
+  "name": "simple opensource to-do pwa",
   "icons": [
     {
       "src": "favicon.ico",
