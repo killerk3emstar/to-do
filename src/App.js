@@ -58,7 +58,7 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const firestore = firebase.firestore();
 
-const drawerWidth = 240;
+const drawerWidth = 180;
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -94,9 +94,9 @@ const useStyles = makeStyles((theme) => ({
     left: "0",
     display: "block",
     fontSize: "1.5rem",
-    margin: "10px",
+    margin: "8px",
     [theme.breakpoints.up("sm")]: {
-      left: "240px",
+      left: drawerWidth,
     },
   },
   todoinputform: {
@@ -122,13 +122,22 @@ function App() {
   return (
     <Router>
       <div className="app">
-        {user ? (
-          <TodoContainer user={user} />
-        ) : (
-          <button onClick={singInWithGoogle}>login</button>
-        )}
+        {user ? <TodoContainer user={user} /> : <Login>login</Login>}
       </div>
     </Router>
+  );
+}
+
+function Login() {
+  const singInWithGoogle = () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider);
+  };
+  return (
+    <div>
+      <h1>login</h1>
+      <button onClick={singInWithGoogle}>login</button>
+    </div>
   );
 }
 
@@ -165,7 +174,7 @@ function TodoContainer(props) {
       .collection("Todo")
       .doc()
       .set({
-        text: "That's your new folder!",
+        text: "That's '" + newFolderName + "' folder you've created!",
         completed: false,
         folder: newFolderName,
         date: firebase.firestore.FieldValue.serverTimestamp(),
@@ -185,7 +194,9 @@ function TodoContainer(props) {
       .collection("users")
       .doc(auth.currentUser.uid)
       .collection("Todo")
+      .orderBy("date", "desc")
       .onSnapshot((snapshot) => {
+        console.log("cyk");
         setTodos(
           snapshot.docs.map((doc) => {
             const data = doc.data();
@@ -265,23 +276,39 @@ function TodoContainer(props) {
   };
 
   const drawer = (
-    <div>
-      <div className={classes.toolbar} />
-      <Divider />
-      <ListItem component={Link} to={"/"} button>
-        <ListItemIcon></ListItemIcon>
-        <ListItemText primary="All" />
-      </ListItem>
-
-      <Divider />
-      {todoFolders.map((item) => (
-        // <Link to={`/${item}`}>
-        <ListItem component={Link} to={`/${item}`} button key={item}>
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+      }}
+    >
+      <div>
+        <div className={classes.toolbar} />
+        <Divider />
+        <ListItem component={Link} to={"/"} button>
           <ListItemIcon></ListItemIcon>
-          <ListItemText primary={item} />
+          <ListItemText primary="All" />
         </ListItem>
-        // </Link>
-      ))}
+
+        <Divider />
+        {todoFolders.map((item) => (
+          // <Link to={`/${item}`}>
+          <ListItem component={Link} to={`/${item}`} button key={item}>
+            <ListItemIcon></ListItemIcon>
+            <ListItemText primary={item} />
+          </ListItem>
+          // </Link>
+        ))}
+      </div>
+      <Button
+        variant="outlined"
+        style={{ margin: "16px" }}
+        onClick={() => handleClickOpen()}
+      >
+        +
+      </Button>
     </div>
   );
 
@@ -379,9 +406,6 @@ function TodoContainer(props) {
         <div
           style={{
             display: "flex",
-            justifyContent: "flex-start",
-            // padding: "8px 8px 0 8px",
-            overflowX: "auto",
           }}
         >
           <Chip
@@ -397,16 +421,30 @@ function TodoContainer(props) {
             label="+"
             onClick={() => handleClickOpen()}
           />
-          {todoFolders.map((item) => (
-            <Chip
-              style={{ margin: "8px" }}
-              color={folder === item ? "secondary" : "default"}
-              variant="outlined"
-              key={item}
-              label={item}
-              onClick={() => setFolder(item)}
-            ></Chip>
-          ))}
+          <Divider
+            orientation="vertical"
+            flexItem
+            style={{ margin: "6px 0" }}
+          ></Divider>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-start",
+              // padding: "8px 8px 0 8px",
+              overflowX: "auto",
+            }}
+          >
+            {todoFolders.map((item) => (
+              <Chip
+                style={{ margin: "8px" }}
+                color={folder === item ? "secondary" : "default"}
+                variant="outlined"
+                key={item}
+                label={item}
+                onClick={() => setFolder(item)}
+              ></Chip>
+            ))}
+          </div>
         </div>
         <form className={classes.todoinputform} onSubmit={Save}>
           <Checkbox disabled></Checkbox>
@@ -480,7 +518,6 @@ function Todo(props) {
 
   const allNotCompleted = props.todos
     .filter((item) => item.completed === false)
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
     .map((filteredItem) => (
       <ListToDo
         key={filteredItem.id}
@@ -497,7 +534,6 @@ function Todo(props) {
 
   const notCompleted = props.todos
     .filter((item) => item.completed === false && item.folder === curPath)
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
     .map((filteredItem) => (
       <ListToDo
         key={filteredItem.id}
@@ -561,7 +597,7 @@ function Todo(props) {
         completed
       </Typography>
       {curPath ? completed : allCompleted}
-      <div style={{ height: "118px" }}></div>
+      <div style={{ height: "128px" }}></div>
     </div>
   );
 }
